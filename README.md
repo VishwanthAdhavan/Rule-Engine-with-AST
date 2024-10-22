@@ -24,19 +24,29 @@ This Rule Engine API is a Flask-based web service that allows users to create, s
 ## Project Structure
 
 rule-engine/
+
 │
 
 ├── app.py
 
 ├── rule_engine/
+
 │ ├── init.py
+
 │ ├── api.py
+
 │ └── database.py
+
 ├── templates/
+
 │ └── index.html
+
 ├── requirements.txt
+
 ├── .env
+
 ├── .gitignore
+
 └── README.md
 
 
@@ -184,6 +194,41 @@ The server should now be running on `http://localhost:5000`.
 You can use the provided `test_rule.py` script to test the API:
 
 ```
+python test_rule.py
+
+```
+
+## Implementation Details
+
+This Rule Engine uses a parsing technique similar to building and evaluating an Abstract Syntax Tree (AST):
+
+1. **Tokenization**: The rule string is broken down into tokens using regular expressions. This process identifies individual components of the rule such as parentheses, operators (AND, OR), comparison operators, variables, and literals.
+
+2. **Parsing**: A recursive descent parser constructs a tree-like structure representing the rule. This structure is analogous to a simple AST:
+   - The `Parser` class contains methods for parsing different elements of the rule (expressions, terms, factors, comparisons).
+   - Each part of the rule is represented by a `Node` object, which can have child nodes, forming a tree structure.
+   - This process handles operator precedence and nested expressions naturally.
+
+3. **Evaluation**: The rule is evaluated by traversing this tree structure, similar to how an AST would be traversed:
+   - The `evaluate_rule` function recursively evaluates each node in the tree.
+   - Logical operations (AND, OR) are evaluated by combining the results of their child nodes.
+   - Comparisons are evaluated against the provided data.
+
+While not a full-fledged AST implementation, this approach provides a flexible and extensible way to represent and evaluate complex logical rules. It allows for easy addition of new operators or rule types in the future.
+
+### Advantages of this AST-like Approach
+
+1. **Flexibility**: Complex nested rules can be represented and evaluated easily.
+2. **Extensibility**: New types of operations or rule elements can be added by extending the `Node` class and updating the parser.
+3. **Readability**: The structure of the rule is clearly represented in the code, making it easier to understand and debug.
+4. **Performance**: Once parsed, rules can be evaluated quickly without needing to be re-parsed for each evaluation.
+
+### Future Enhancements
+
+- Implement a more formal AST structure with distinct node types for different rule components (e.g., `AndNode`, `OrNode`, `ComparisonNode`).
+- Separate the AST construction phase from the evaluation phase for more flexibility and potential optimizations.
+- Implement a visitor pattern for more advanced operations on the rule structure, such as rule optimization or translation to other formats.
+
 ## Advantages of this Implementation
 
 1. **Flexibility:** The rule engine can handle complex logical expressions with nested conditions.
@@ -201,3 +246,10 @@ You can use the provided `test_rule.py` script to test the API:
 - Add support for more complex rule types (e.g., regex matching, date comparisons)
 - Implement caching for frequently used rules
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
