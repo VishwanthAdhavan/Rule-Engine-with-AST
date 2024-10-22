@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Engine API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #3498db;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        .result {
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-cogs me-2"></i>Rule Engine API</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create a Rule</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="createRuleForm">
+                            <div class="mb-3">
+                                <label for="rule" class="form-label">Rule:</label>
+                                <input type="text" class="form-control" id="rule" name="rule" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Create Rule</button>
+                        </form>
+                        <div id="createResult" class="result mt-3"></div>
+                        <div id="rulesList" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Evaluate a Rule</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="evaluateRuleForm">
+                            <div class="mb-3">
+                                <label for="data" class="form-label">Data (JSON format):</label>
+                                <textarea class="form-control" id="data" name="data" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-play me-2"></i>Evaluate Rule</button>
+                        </form>
+                        <div id="evaluateResult" class="result mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentRuleId = null;
+
+        document.getElementById('createRuleForm').onsubmit = function(e) {
+            e.preventDefault();
+            fetch('/create_rule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({rule: document.getElementById('rule').value}),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                currentRuleId = data.rule_id;
+                document.getElementById('createResult').innerHTML = `
+                    <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Rule is Created</h6>
+                `;
+                document.getElementById('rulesList').innerHTML = `
+                    <h6>Created Rule:</h6>
+                    <pre>${data.rule_string}</pre>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('createResult').innerHTML = `
+                    <h6 class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error</h6>
+                    <pre>${error.error || error.message}</pre>
+                `;
+            });
+        };
+
+        document.getElementById('evaluateRuleForm').onsubmit = function(e) {
+            e.preventDefault();
+            if (!currentRuleId) {
+                document.getElementById('evaluateResult').innerHTML = `
+                    <h6 class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error</h6>
+                    <pre>Please create a rule first</pre>
+                `;
+                return;
+            }
+            let data;
+            try {
+                data = JSON.parse(document.getElementById('data').value);
+            } catch (error) {
+                document.getElementById('evaluateResult').innerHTML = `
+                    <h6 class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error</h6>
+                    <pre>Invalid JSON in data field</pre>
+                `;
+                return;
+            }
+            fetch('/evaluate_rule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rule_id: currentRuleId, data: data }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('evaluateResult').innerHTML = `
+                    <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Rule Evaluated</h6>
+                    <pre>Result: ${JSON.stringify(data.result)}</pre>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('evaluateResult').innerHTML = `
+                    <h6 class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error</h6>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            });
+        };
+    </script>
+</body>
+</html>
